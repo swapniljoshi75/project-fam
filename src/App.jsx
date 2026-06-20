@@ -84,9 +84,11 @@ const GENDER_COLOR = {
 }
 
 /* ─── Review panel (admin only) ─── */
-function ReviewPanel({ persons, onApprove, onClose }) {
+function ReviewPanel({ persons, onApprove, onApproveSpouse, onClose }) {
   const sorted = [...persons].sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
-  const userAdded = sorted.filter(p => !p.addedByAdmin)
+  const pendingMembers = sorted.filter(p => !p.addedByAdmin)
+  const pendingSpouses = sorted.filter(p => p.spouseStatus === 'pending' && p.spouseName)
+  const totalCount = pendingMembers.length + pendingSpouses.length
 
   const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—'
   const getParent = (id) => persons.find(p => p.id === id)?.name ?? '—'
@@ -106,20 +108,19 @@ function ReviewPanel({ persons, onApprove, onClose }) {
         <style>{`@keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }`}</style>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #E2E8F0' }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Member Review <span style={{ color: '#64748B', fontWeight: 400 }}>({userAdded.length})</span></h2>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Member Review <span style={{ color: '#64748B', fontWeight: 400 }}>({totalCount})</span></h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#64748B', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px' }}>
-          {userAdded.length === 0 ? (
-            <p style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No members added by users yet.</p>
+          {totalCount === 0 ? (
+            <p style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No pending reviews.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {userAdded.map(p => {
+
+              {pendingMembers.map(p => {
                 const c = GENDER_COLOR[p.gender] ?? GENDER_COLOR.male
-                const relation = p.parentId
-                  ? `Child of ${getParent(p.parentId)}`
-                  : 'Root'
+                const relation = p.parentId ? `Child of ${getParent(p.parentId)}` : 'Root'
                 return (
                   <div key={p.id} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', background: '#fff' }}>
                     <div style={{ height: 5, background: c.header }} />
@@ -146,6 +147,36 @@ function ReviewPanel({ persons, onApprove, onClose }) {
                   </div>
                 )
               })}
+
+              {pendingSpouses.map(p => {
+                const sc = GENDER_COLOR[p.spouseGender] ?? GENDER_COLOR.female
+                return (
+                  <div key={`spouse-${p.id}`} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', background: '#fff' }}>
+                    <div style={{ height: 5, background: sc.header }} />
+                    <div style={{ padding: '18px 18px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>{p.spouseName}</span>
+                        <span style={{ fontSize: 11, color: '#94A3B8' }}>{fmt(p.addedAt)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, background: sc.soft, color: sc.text, padding: '2px 10px', borderRadius: 20 }}>
+                            {p.spouseGender === 'male' ? 'Male' : 'Female'}
+                          </span>
+                          <span style={{ fontSize: 12, color: '#64748B' }}>Spouse of {p.name}</span>
+                        </div>
+                        <button
+                          onClick={() => onApproveSpouse(p.id)}
+                          style={{ flexShrink: 0, fontSize: 12, padding: '5px 14px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, letterSpacing: 0.2 }}
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
             </div>
           )}
         </div>
@@ -185,7 +216,9 @@ export default function App() {
     // Spouse is inline on the main person — no separate document
     if (spouseOfId) {
       const persons = data.persons.map(p =>
-        p.id === spouseOfId ? { ...p, spouseName: name.trim(), spouseGender: gender } : p
+        p.id === spouseOfId
+          ? { ...p, spouseName: name.trim(), spouseGender: gender, spouseStatus: isAdmin ? 'approved' : 'pending' }
+          : p
       )
       const updated = persons.find(p => p.id === spouseOfId)
       setData({ ...data, persons })
@@ -207,6 +240,7 @@ export default function App() {
       siblingOrder: siblingOrder ?? 1,
       spouseName: null,
       spouseGender: null,
+      spouseStatus: null,
     }
 
     let persons = [...data.persons, person]
@@ -243,7 +277,7 @@ export default function App() {
     const target = data.persons.find(p => p.id === personId)
     if (!target?.spouseName) return
     if (!window.confirm(`Remove "${target.spouseName}" as spouse? This cannot be undone.`)) return
-    const updated = { ...target, spouseName: null, spouseGender: null }
+    const updated = { ...target, spouseName: null, spouseGender: null, spouseStatus: null }
     const persons = data.persons.map(p => p.id === personId ? updated : p)
     setData({ ...data, persons })
     savePersons([updated]).catch(() => alert('Could not remove spouse.'))
@@ -277,7 +311,14 @@ export default function App() {
     const toSave = persons.filter(p => idSet.has(p.id))
     setData({ ...data, persons })
     savePersons(toSave).catch(() => alert('Could not save approval. Please try again.'))
-    if (persons.filter(p => !p.addedByAdmin).length === 0) setShowReview(false)
+  }, [data])
+
+  /* ─── Approve spouse ─── */
+  const handleApproveSpouse = useCallback((personId) => {
+    const persons = data.persons.map(p => p.id === personId ? { ...p, spouseStatus: 'approved' } : p)
+    const updated = persons.find(p => p.id === personId)
+    setData({ ...data, persons })
+    savePersons([updated]).catch(() => alert('Could not approve spouse. Please try again.'))
   }, [data])
 
   const startEditName = useCallback(() => {
@@ -322,7 +363,7 @@ export default function App() {
     </div>
   )
 
-  const userAddedCount = data.persons.filter(p => !p.addedByAdmin).length
+  const userAddedCount = data.persons.filter(p => !p.addedByAdmin || p.spouseStatus === 'pending').length
 
   return (
     <div className="app">
@@ -417,6 +458,7 @@ export default function App() {
         <ReviewPanel
           persons={data.persons}
           onApprove={handleApprove}
+          onApproveSpouse={handleApproveSpouse}
           onClose={() => setShowReview(false)}
         />
       )}
