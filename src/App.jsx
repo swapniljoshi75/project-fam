@@ -355,7 +355,7 @@ export default function App() {
               🔓 Admin · Sign out
             </button>
           ) : (
-            <button className="btn btn-ghost" onClick={() => setShowLogin(true)} style={{ fontSize:12 }}>
+            <button className="btn btn-ghost hide-mobile" onClick={() => setShowLogin(true)} style={{ fontSize:12 }}>
               Admin Login
             </button>
           )}
