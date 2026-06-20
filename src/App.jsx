@@ -419,7 +419,7 @@ export default function App() {
         </div>
       </header>
 
-      <div style={{ height: 'calc(100vh - 56px)', width: '100%' }}>
+      <div className="chart-container">
         <FamilyFlow
           persons={data.persons}
           isAdmin={isAdmin}

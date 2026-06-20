@@ -41,6 +41,16 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; }
   .hide-mobile { display: none !important; }
 }
 
+.chart-container {
+  height: calc(100vh - 56px);
+  width: 100%;
+}
+
+@media (orientation: landscape) and (pointer: coarse) {
+  .header { display: none !important; }
+  .chart-container { height: 100vh; }
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 5px;
