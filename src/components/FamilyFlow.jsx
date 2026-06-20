@@ -20,6 +20,8 @@ export default function FamilyFlow({
   onAddRoot,
   onEdit,
   onDelete,
+  onEditSpouse,
+  onDeleteSpouse,
   activeTapId,
   setActiveTapId,
 }) {
@@ -32,9 +34,9 @@ export default function FamilyFlow({
   const nodes = useMemo(
     () => baseNodes.map(n => ({
       ...n,
-      data: { ...n.data, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, activeTapId, setActiveTapId },
+      data: { ...n.data, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId },
     })),
-    [baseNodes, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, activeTapId],
+    [baseNodes, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId],
   )
 
   if (persons.filter(p => p.isNode).length === 0) {

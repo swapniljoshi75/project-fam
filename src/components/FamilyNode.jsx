@@ -35,10 +35,10 @@ const plusBtn = {
 }
 
 function FamilyNode({ data }) {
-  const { person, spouse, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, activeTapId, setActiveTapId, hasChildren } = data
+  const { person, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId, hasChildren } = data
   const isRoot = !person.parentId
   const pc = GENDER[person.gender] ?? GENDER.male
-  const sc = spouse ? (GENDER[spouse.gender] ?? GENDER.female) : null
+  const sc = person.spouseGender ? (GENDER[person.spouseGender] ?? GENDER.female) : null
 
   const [hovered, setHovered] = useState(false)
   const show = hovered || activeTapId === person.id
@@ -100,17 +100,17 @@ function FamilyNode({ data }) {
         </Box>
 
         {/* ── Spouse row ── */}
-        {spouse ? (
+        {person.spouseName ? (
           <Box sx={{ background: sc.soft, borderTop: `1.5px solid ${sc.soft}`, px: 1.75, py: 0.8, minHeight: 36, display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <Typography sx={{ color: sc.text, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {spouse.name}
+              {person.spouseName}
             </Typography>
             {isAdmin && (
               <>
-                <IconButton size="small" onClick={() => onEdit(spouse)} sx={{ width: 20, height: 20, color: sc.text, opacity: 0.5, '&:hover': { opacity: 1, background: 'rgba(0,0,0,0.06)' } }}>
+                <IconButton size="small" onClick={() => onEditSpouse(person)} sx={{ width: 20, height: 20, color: sc.text, opacity: 0.5, '&:hover': { opacity: 1, background: 'rgba(0,0,0,0.06)' } }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </IconButton>
-                <IconButton size="small" onClick={() => onDelete(spouse.id)} sx={{ width: 20, height: 20, color: '#EF4444', opacity: 0.5, '&:hover': { opacity: 1, background: 'rgba(239,68,68,0.08)' } }}>
+                <IconButton size="small" onClick={() => onDeleteSpouse(person.id)} sx={{ width: 20, height: 20, color: '#EF4444', opacity: 0.5, '&:hover': { opacity: 1, background: 'rgba(239,68,68,0.08)' } }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                 </IconButton>
               </>

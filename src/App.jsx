@@ -181,27 +181,35 @@ export default function App() {
   }, [])
 
   /* ─── Add member ─── */
-  const handleAddMember = useCallback(({ name, gender, parentId, spouseOfId, isParentOf }) => {
+  const handleAddMember = useCallback(({ name, gender, parentId, spouseOfId, isParentOf, siblingOrder }) => {
+    // Spouse is inline on the main person — no separate document
+    if (spouseOfId) {
+      const persons = data.persons.map(p =>
+        p.id === spouseOfId ? { ...p, spouseName: name.trim(), spouseGender: gender } : p
+      )
+      const updated = persons.find(p => p.id === spouseOfId)
+      setData({ ...data, persons })
+      savePersons([updated]).catch(() => alert('Could not save spouse.'))
+      setAddModal(null)
+      setActiveTapId(null)
+      return
+    }
+
     const person = {
       id: uid(),
       name: name.trim(),
       gender,
-      isNode: !spouseOfId,
+      isNode: true,
       parentId: parentId ?? null,
-      spouseId: spouseOfId ?? null,
       status: 'approved',
       addedAt: Date.now(),
       addedByAdmin: isAdmin,
+      ...(siblingOrder != null && { siblingOrder }),
     }
 
     let persons = [...data.persons, person]
     const toSave = [person]
 
-    if (spouseOfId) {
-      // Update in-memory only — new spouse doc already holds spouseId pointing to the existing
-      // person, so the graph lookup works without updating the existing person's document.
-      persons = persons.map(p => p.id === spouseOfId ? { ...p, spouseId: person.id } : p)
-    }
     if (isParentOf) {
       persons = persons.map(p => p.id === isParentOf ? { ...p, parentId: person.id } : p)
       const updated = persons.find(p => p.id === isParentOf)
@@ -224,48 +232,32 @@ export default function App() {
     setEditModal(null)
   }, [data])
 
+  /* ─── Delete spouse (inline fields) ─── */
+  const handleDeleteSpouse = useCallback(async (personId) => {
+    const target = data.persons.find(p => p.id === personId)
+    if (!target?.spouseName) return
+    if (!window.confirm(`Remove "${target.spouseName}" as spouse? This cannot be undone.`)) return
+    const updated = { ...target, spouseName: null, spouseGender: null }
+    const persons = data.persons.map(p => p.id === personId ? updated : p)
+    setData({ ...data, persons })
+    savePersons([updated]).catch(() => alert('Could not remove spouse.'))
+  }, [data])
+
   /* ─── Delete member ─── */
   const handleDeleteMember = useCallback(async (personId) => {
     const target = data.persons.find(p => p.id === personId)
     if (!target) return
-
-    // Deleting a spouse entry — only remove the spouse, keep the main person
-    if (!target.isNode) {
-      if (!window.confirm(`Remove "${target.name}" as spouse? This cannot be undone.`)) return
-      await deletePersonDoc(personId)
-      const toUpdate = []
-      const persons = data.persons
-        .filter(p => p.id !== personId)
-        .map(p => {
-          if (p.spouseId === personId) { const u = { ...p, spouseId: null }; toUpdate.push(u); return u }
-          return p
-        })
-      setData({ ...data, persons })
-      if (toUpdate.length) savePersons(toUpdate)
-      return
-    }
-
-    // Deleting a main person — also delete their linked spouse
     if (!window.confirm(`Delete "${target.name}"? This cannot be undone.`)) return
 
-    const spouseId = target.spouseId
-    const reverseSpouse = data.persons.find(p => !p.isNode && p.spouseId === personId)
-    const idsToDelete = new Set([personId])
-    if (spouseId) idsToDelete.add(spouseId)
-    if (reverseSpouse) idsToDelete.add(reverseSpouse.id)
-
-    await Promise.all([...idsToDelete].map(id => deletePersonDoc(id)))
+    await deletePersonDoc(personId)
 
     const toUpdate = []
     const persons = data.persons
-      .filter(p => !idsToDelete.has(p.id))
+      .filter(p => p.id !== personId)
       .map(p => {
-        const next = {
-          ...p,
-          spouseId: idsToDelete.has(p.spouseId) ? null : p.spouseId,
-          parentId: idsToDelete.has(p.parentId) ? null : p.parentId,
-        }
-        if (next.spouseId !== p.spouseId || next.parentId !== p.parentId) toUpdate.push(next)
+        if (p.parentId !== personId) return p
+        const next = { ...p, parentId: null }
+        toUpdate.push(next)
         return next
       })
     setData({ ...data, persons })
@@ -296,10 +288,25 @@ export default function App() {
     setEditingName(false)
   }, [nameInput, treeName])
 
-  const onAddChild  = useCallback((person) => setAddModal({ mode: 'child',  refNode: person }), [])
+  const onAddChild  = useCallback((person) => {
+    const usedOrders = data.persons
+      .filter(p => p.isNode && p.parentId === person.id && p.siblingOrder != null)
+      .map(p => p.siblingOrder)
+    setAddModal({ mode: 'child', refNode: person, usedOrders })
+  }, [data])
   const onAddParent = useCallback((person) => setAddModal({ mode: 'parent', refNode: person }), [])
-  const onAddSpouse  = useCallback((person) => setAddModal({ mode: 'spouse',  refNode: person }), [])
+  const onAddSpouse   = useCallback((person) => setAddModal({ mode: 'spouse', refNode: person }), [])
+  const onEditSpouse  = useCallback((person) => setAddModal({ mode: 'spouse', refNode: person, initialName: person.spouseName ?? '', initialGender: person.spouseGender ?? null }), [])
   const onAddRoot    = useCallback(() => setAddModal({ mode: 'root' }), [])
+
+  const onEdit = useCallback((person) => {
+    const usedOrders = person.isNode && person.parentId
+      ? data.persons
+          .filter(p => p.isNode && p.parentId === person.parentId && p.id !== person.id && p.siblingOrder != null)
+          .map(p => p.siblingOrder)
+      : []
+    setEditModal({ person, usedOrders })
+  }, [data])
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', flexDirection:'column', gap:16, color:'#64748B' }}>
@@ -370,8 +377,10 @@ export default function App() {
           onAddParent={onAddParent}
           onAddSpouse={onAddSpouse}
           onAddRoot={onAddRoot}
-          onEdit={setEditModal}
+          onEdit={onEdit}
           onDelete={handleDeleteMember}
+          onEditSpouse={onEditSpouse}
+          onDeleteSpouse={handleDeleteSpouse}
           activeTapId={activeTapId}
           setActiveTapId={setActiveTapId}
         />
@@ -381,6 +390,9 @@ export default function App() {
         <AddMemberModal
           mode={addModal.mode}
           refNode={addModal.refNode}
+          usedOrders={addModal.usedOrders ?? []}
+          initialName={addModal.initialName}
+          initialGender={addModal.initialGender}
           onSubmit={handleAddMember}
           onClose={() => { setAddModal(null); setActiveTapId(null) }}
         />
@@ -388,7 +400,8 @@ export default function App() {
 
       {editModal && (
         <EditMemberModal
-          person={editModal}
+          person={editModal.person}
+          usedOrders={editModal.usedOrders ?? []}
           onSave={handleEditMember}
           onClose={() => setEditModal(null)}
         />

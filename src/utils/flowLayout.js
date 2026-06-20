@@ -12,31 +12,36 @@ export function buildFlowGraph(persons) {
   g.setGraph({ rankdir: 'TB', ranksep: 90, nodesep: 40, marginx: 40, marginy: 40 })
 
   nodeList.forEach(p => g.setNode(p.id, { width: NODE_W, height: NODE_H }))
-  nodeList
-    .filter(p => p.parentId && idSet.has(p.parentId))
-    .forEach(p => g.setEdge(p.parentId, p.id))
+
+  // Sort siblings by birth order before adding dagre edges so the layout
+  // places them left-to-right in elder→younger order.
+  const children = nodeList.filter(p => p.parentId && idSet.has(p.parentId))
+  const byParent = {}
+  children.forEach(p => { (byParent[p.parentId] ??= []).push(p) })
+  Object.values(byParent).forEach(siblings => {
+    siblings
+      .sort((a, b) => (a.siblingOrder ?? a.addedAt ?? 0) - (b.siblingOrder ?? b.addedAt ?? 0))
+      .forEach(p => g.setEdge(p.parentId, p.id))
+  })
 
   dagre.layout(g)
 
-  const childParentIds = new Set(nodeList.filter(p => p.parentId).map(p => p.parentId))
+  const childParentIds = new Set(children.map(p => p.parentId))
 
   const nodes = nodeList.map(p => {
-    const { x, y } = g.node(p.id)
-    const spouse = p.spouseId
-      ? (persons.find(s => s.id === p.spouseId) ?? null)
-      : (persons.find(s => !s.isNode && s.spouseId === p.id) ?? null)
+    const pos = g.node(p.id)
+    if (!pos) return null
+    const { x, y } = pos
     return {
       id: p.id,
       type: 'familyNode',
       position: { x: x - NODE_W / 2, y: y - NODE_H / 2 },
-      data: { person: p, spouse, hasChildren: childParentIds.has(p.id) },
+      data: { person: p, hasChildren: childParentIds.has(p.id) },
       draggable: false,
     }
-  })
+  }).filter(Boolean)
 
-  const edges = nodeList
-    .filter(p => p.parentId && idSet.has(p.parentId))
-    .map(p => ({
+  const edges = children.map(p => ({
       id: `e-${p.parentId}-${p.id}`,
       source: p.parentId,
       target: p.id,

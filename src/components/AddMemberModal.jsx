@@ -1,30 +1,34 @@
 import { useState } from 'react'
 
 const MODE_TITLE = {
-  root:   ()    => 'Add First Member',
-  child:  (ref) => `Add Child of ${ref?.name}`,
-  spouse: (ref) => `Add Spouse of ${ref?.name}`,
-  parent: (ref) => `Add Parent of ${ref?.name}`,
+  root:   ()           => 'Add First Member',
+  child:  (ref)        => `Add Child of ${ref?.name}`,
+  spouse: (ref, isEdit) => `${isEdit ? 'Edit' : 'Add'} Spouse of ${ref?.name}`,
+  parent: (ref)        => `Add Parent of ${ref?.name}`,
 }
 
 const MODE_HINT = {
   parent: (ref) => `${ref?.name} will become their child.`,
 }
 
-export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
-  const [name, setName] = useState('')
-  const [gender, setGender] = useState('male')
-  const [error, setError] = useState('')
+export default function AddMemberModal({ mode, refNode, usedOrders = [], initialName, initialGender, onSubmit, onClose }) {
+  const [name, setName] = useState(initialName ?? '')
+  const [gender, setGender] = useState(initialGender ?? null)
+  const [birthOrder, setBirthOrder] = useState(null)
+  const isValid =
+    name.trim() &&
+    gender &&
+    (mode !== 'child' || birthOrder != null)
 
   const handleSubmit = () => {
-    if (!name.trim()) { setError('Name is required.'); return }
+    if (!isValid) return
 
     switch (mode) {
       case 'root':
         onSubmit({ name, gender, parentId: null, spouseOfId: null })
         break
       case 'child':
-        onSubmit({ name, gender, parentId: refNode.id, spouseOfId: null })
+        onSubmit({ name, gender, parentId: refNode.id, spouseOfId: null, siblingOrder: birthOrder })
         break
       case 'spouse':
         onSubmit({ name, gender, parentId: null, spouseOfId: refNode.id })
@@ -35,7 +39,7 @@ export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
     }
   }
 
-  const title = MODE_TITLE[mode]?.(refNode) ?? 'Add Member'
+  const title = MODE_TITLE[mode]?.(refNode, !!initialName) ?? 'Add Member'
   const hint  = MODE_HINT[mode]?.(refNode) ?? null
 
   return (
@@ -54,7 +58,7 @@ export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
           )}
 
           <div className="form-group">
-            <label className="form-label">Full Name</label>
+            <label className="form-label">Full Name <span style={{ color: '#EF4444' }}>*</span></label>
             <input
               className="form-input"
               placeholder="Enter full name"
@@ -62,7 +66,6 @@ export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
               onChange={e => {
                 const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, '')
                 setName(filtered.replace(/\b\w/g, c => c.toUpperCase()))
-                setError('')
               }}
               autoFocus
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
@@ -70,7 +73,7 @@ export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Gender</label>
+            <label className="form-label">Gender <span style={{ color: '#EF4444' }}>*</span></label>
             <div className="radio-group">
               <label className={`radio-option ${gender === 'male' ? 'selected-male' : ''}`}>
                 <input type="radio" value="male" checked={gender === 'male'} onChange={() => setGender('male')} />
@@ -83,11 +86,51 @@ export default function AddMemberModal({ mode, refNode, onSubmit, onClose }) {
             </div>
           </div>
 
-          {error && <p style={{ color: '#DC2626', fontSize: 13 }}>{error}</p>}
+          {mode === 'child' && (
+            <div className="form-group">
+              <label className="form-label">Birth Order <span style={{ color: '#EF4444' }}>*</span></label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+                  const used     = usedOrders.includes(n)
+                  const selected = birthOrder === n
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={used}
+                      onClick={() => setBirthOrder(n)}
+                      style={{
+                        width: 28, height: 28,
+                        borderRadius: '50%',
+                        border: selected
+                          ? '2px solid #3B82F6'
+                          : `1.5px solid ${used ? '#E2E8F0' : '#CBD5E1'}`,
+                        background: selected ? '#3B82F6' : used ? '#F8FAFC' : '#fff',
+                        color: selected ? '#fff' : used ? '#D1D5DB' : '#374151',
+                        fontWeight: selected ? 700 : 500,
+                        fontSize: 12,
+                        cursor: used ? 'not-allowed' : 'pointer',
+                        transition: 'background 0.12s, color 0.12s',
+                        flexShrink: 0,
+                        padding: 0,
+                      }}
+                    >
+                      {n}
+                    </button>
+                  )
+                })}
+              </div>
+              {usedOrders.length > 0 && (
+                <p style={{ fontSize: 11, color: '#94A3B8', margin: '6px 0 0' }}>
+                  Grayed numbers are taken by existing siblings.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="form-actions">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSubmit}>+ Add Member</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={!isValid} style={{ opacity: isValid ? 1 : 0.45, cursor: isValid ? 'pointer' : 'not-allowed' }}>+ Add Member</button>
           </div>
         </div>
       </div>
