@@ -5,7 +5,9 @@ service cloud.firestore {
     match /persons/{personId} {
       allow read: if true;
       allow create: if true;
-      allow update, delete: if request.auth != null
+      allow update: if (request.auth != null && request.auth.token.email == 'dreamysj143@gmail.com')
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['spouseName', 'spouseGender']);
+      allow delete: if request.auth != null
         && request.auth.token.email == 'dreamysj143@gmail.com';
     }
 

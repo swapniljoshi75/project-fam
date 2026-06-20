@@ -38,7 +38,7 @@ function FamilyNode({ data }) {
   const { person, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId, hasChildren } = data
   const isRoot = !person.parentId
   const pc = GENDER[person.gender] ?? GENDER.male
-  const sc = person.spouseGender ? (GENDER[person.spouseGender] ?? GENDER.female) : null
+  const sc = GENDER[person.spouseGender] ?? GENDER.female
 
   const [hovered, setHovered] = useState(false)
   const show = hovered || activeTapId === person.id

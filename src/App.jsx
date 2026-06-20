@@ -119,7 +119,7 @@ function ReviewPanel({ persons, onApprove, onClose }) {
                 const c = GENDER_COLOR[p.gender] ?? GENDER_COLOR.male
                 const relation = p.parentId
                   ? `Child of ${getParent(p.parentId)}`
-                  : (!p.isNode && p.spouseId ? `Spouse of ${getParent(p.spouseId)}` : 'Root')
+                  : 'Root'
                 return (
                   <div key={p.id} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', background: '#fff' }}>
                     <div style={{ height: 5, background: c.header }} />
