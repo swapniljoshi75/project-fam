@@ -5,7 +5,7 @@ export default function EditMemberModal({ person, usedOrders = [], onSave, onClo
   const [gender, setGender]       = useState(person.gender || null)
   const [birthOrder, setBirthOrder] = useState(person.siblingOrder ?? null)
 
-  const showBirthOrder = person.isNode && !!person.parentId
+  const showBirthOrder = !!person.isNode
 
   const isValid =
     name.trim() &&
@@ -18,7 +18,7 @@ export default function EditMemberModal({ person, usedOrders = [], onSave, onClo
       ...person,
       name: name.trim(),
       gender,
-      ...(showBirthOrder ? { siblingOrder: birthOrder } : {}),
+      siblingOrder: birthOrder,
     })
   }
 

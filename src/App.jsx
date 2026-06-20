@@ -204,7 +204,9 @@ export default function App() {
       status: 'approved',
       addedAt: Date.now(),
       addedByAdmin: isAdmin,
-      ...(siblingOrder != null ? { siblingOrder } : {}),
+      siblingOrder: siblingOrder ?? 1,
+      spouseName: null,
+      spouseGender: null,
     }
 
     let persons = [...data.persons, person]
