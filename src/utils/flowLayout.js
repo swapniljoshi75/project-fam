@@ -27,6 +27,8 @@ export function buildFlowGraph(persons) {
   dagre.layout(g)
 
   const childParentIds = new Set(children.map(p => p.parentId))
+  const childCountMap = {}
+  children.forEach(p => { childCountMap[p.parentId] = (childCountMap[p.parentId] ?? 0) + 1 })
 
   const nodes = nodeList.map(p => {
     const pos = g.node(p.id)
@@ -36,7 +38,7 @@ export function buildFlowGraph(persons) {
       id: p.id,
       type: 'familyNode',
       position: { x: x - NODE_W / 2, y: y - NODE_H / 2 },
-      data: { person: p, hasChildren: childParentIds.has(p.id) },
+      data: { person: p, hasChildren: childParentIds.has(p.id), childCount: childCountMap[p.id] ?? 0 },
       draggable: false,
     }
   }).filter(Boolean)

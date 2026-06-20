@@ -35,7 +35,7 @@ const plusBtn = {
 }
 
 function FamilyNode({ data }) {
-  const { person, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId, hasChildren } = data
+  const { person, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId, hasChildren, childCount } = data
   const isRoot = !person.parentId
   const pc = GENDER[person.gender] ?? GENDER.male
   const sc = GENDER[person.spouseGender] ?? GENDER.female
@@ -83,7 +83,7 @@ function FamilyNode({ data }) {
         {/* ── Person header ── */}
         <Box sx={{ background: pc.header, px: 1.75, py: 1.1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.3, whiteSpace: 'nowrap', flex: 1 }}>
-            {person.name}
+            {person.name}{childCount > 0 ? ` (${childCount})` : ''}
           </Typography>
           {isAdmin && (
             <>
