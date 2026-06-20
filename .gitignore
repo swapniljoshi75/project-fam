@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Vite cache
 .vite/
+
+# Firebase CLI cache
+.firebase/
