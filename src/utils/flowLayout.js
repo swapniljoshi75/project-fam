@@ -20,7 +20,7 @@ export function buildFlowGraph(persons) {
   children.forEach(p => { (byParent[p.parentId] ??= []).push(p) })
   Object.values(byParent).forEach(siblings => {
     siblings
-      .sort((a, b) => (a.siblingOrder ?? a.addedAt ?? 0) - (b.siblingOrder ?? b.addedAt ?? 0))
+      .sort((a, b) => (b.siblingOrder ?? b.addedAt ?? 0) - (a.siblingOrder ?? a.addedAt ?? 0))
       .forEach(p => g.setEdge(p.parentId, p.id))
   })
 
