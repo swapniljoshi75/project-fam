@@ -204,16 +204,18 @@ export default function App() {
       status: 'approved',
       addedAt: Date.now(),
       addedByAdmin: isAdmin,
-      // Nodes without a parent (root/parent mode) get siblingOrder:1 pre-assigned
-      // so that when a parent is added later, subsequent siblings correctly see 1 as taken.
-      ...(siblingOrder != null ? { siblingOrder } : !parentId ? { siblingOrder: 1 } : {}),
+      ...(siblingOrder != null ? { siblingOrder } : {}),
     }
 
     let persons = [...data.persons, person]
     const toSave = [person]
 
     if (isParentOf) {
-      persons = persons.map(p => p.id === isParentOf ? { ...p, parentId: person.id } : p)
+      persons = persons.map(p =>
+        p.id === isParentOf
+          ? { ...p, parentId: person.id, ...(p.siblingOrder == null ? { siblingOrder: 1 } : {}) }
+          : p
+      )
       const updated = persons.find(p => p.id === isParentOf)
       if (updated) toSave.push(updated)
     }

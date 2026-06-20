@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 const MODE_TITLE = {
-  root:   ()           => 'Add First Member',
-  child:  (ref)        => `Add Child of ${ref?.name}`,
+  root:   ()            => 'Add First Member',
+  child:  (ref)         => `Add Child of ${ref?.name}`,
   spouse: (ref, isEdit) => `${isEdit ? 'Edit' : 'Add'} Spouse of ${ref?.name}`,
-  parent: (ref)        => `Add Parent of ${ref?.name}`,
+  parent: (ref)         => `Add Parent of ${ref?.name}`,
 }
 
 const MODE_HINT = {
@@ -12,20 +12,22 @@ const MODE_HINT = {
 }
 
 export default function AddMemberModal({ mode, refNode, usedOrders = [], initialName, initialGender, onSubmit, onClose }) {
-  const [name, setName] = useState(initialName ?? '')
-  const [gender, setGender] = useState(initialGender ?? null)
+  const [name, setName]             = useState(initialName ?? '')
+  const [gender, setGender]         = useState(initialGender ?? null)
   const [birthOrder, setBirthOrder] = useState(null)
+
+  const isSpouseMode = mode === 'spouse'
   const isValid =
     name.trim() &&
     gender &&
-    (mode !== 'child' || birthOrder != null)
+    (isSpouseMode || birthOrder != null)
 
   const handleSubmit = () => {
     if (!isValid) return
 
     switch (mode) {
       case 'root':
-        onSubmit({ name, gender, parentId: null, spouseOfId: null })
+        onSubmit({ name, gender, parentId: null, spouseOfId: null, siblingOrder: birthOrder })
         break
       case 'child':
         onSubmit({ name, gender, parentId: refNode.id, spouseOfId: null, siblingOrder: birthOrder })
@@ -34,7 +36,7 @@ export default function AddMemberModal({ mode, refNode, usedOrders = [], initial
         onSubmit({ name, gender, parentId: null, spouseOfId: refNode.id })
         break
       case 'parent':
-        onSubmit({ name, gender, parentId: null, spouseOfId: null, isParentOf: refNode.id })
+        onSubmit({ name, gender, parentId: null, spouseOfId: null, isParentOf: refNode.id, siblingOrder: birthOrder })
         break
     }
   }
@@ -86,7 +88,7 @@ export default function AddMemberModal({ mode, refNode, usedOrders = [], initial
             </div>
           </div>
 
-          {mode === 'child' && (
+          {!isSpouseMode && (
             <div className="form-group">
               <label className="form-label">Birth Order <span style={{ color: '#EF4444' }}>*</span></label>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -130,7 +132,14 @@ export default function AddMemberModal({ mode, refNode, usedOrders = [], initial
 
           <div className="form-actions">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={!isValid} style={{ opacity: isValid ? 1 : 0.45, cursor: isValid ? 'pointer' : 'not-allowed' }}>+ Add Member</button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={!isValid}
+              style={{ opacity: isValid ? 1 : 0.45, cursor: isValid ? 'pointer' : 'not-allowed' }}
+            >
+              + Add Member
+            </button>
           </div>
         </div>
       </div>
