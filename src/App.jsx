@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { load, savePersons, uid, signIn, signOut, onAuthChange, deletePersonDoc, EMPTY, loadTreeName, saveTreeName } from './utils/store'
+import { subscribePersons, savePersons, uid, signIn, signOut, onAuthChange, deletePersonDoc, EMPTY, loadTreeName, saveTreeName } from './utils/store'
 import FamilyFlow from './components/FamilyFlow'
 import AddMemberModal from './components/AddMemberModal'
 import EditMemberModal from './components/EditMemberModal'
@@ -206,9 +206,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    Promise.all([load(), loadTreeName()])
-      .then(([d, name]) => { setData(d); setTreeName(name); setLoading(false) })
-      .catch(() => { setData(EMPTY); setLoading(false) })
+    loadTreeName().then(name => setTreeName(name)).catch(() => {})
+    const unsubscribe = subscribePersons(d => {
+      setData(d)
+      setLoading(false)
+    })
+    return unsubscribe
   }, [])
 
   /* ─── Add member ─── */

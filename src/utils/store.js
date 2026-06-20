@@ -1,12 +1,13 @@
 import { db, auth, googleProvider } from './firebase'
-import { collection, doc, getDocs, getDoc, setDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore'
 import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth'
 
 export const EMPTY = { persons: [] }
 
-export async function load() {
-  const snap = await getDocs(collection(db, 'persons'))
-  return { persons: snap.docs.map(d => d.data()) }
+export function subscribePersons(callback) {
+  return onSnapshot(collection(db, 'persons'), snap => {
+    callback({ persons: snap.docs.map(d => d.data()) })
+  })
 }
 
 export async function savePersons(persons) {

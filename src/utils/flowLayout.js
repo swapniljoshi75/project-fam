@@ -1,6 +1,6 @@
 import dagre from '@dagrejs/dagre'
 
-export const NODE_W = 220
+export const NODE_W = 260
 export const NODE_H = 116
 
 export function buildFlowGraph(persons) {

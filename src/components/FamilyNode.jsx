@@ -51,7 +51,7 @@ function FamilyNode({ data }) {
 
   return (
     <Box
-      sx={{ width: 220, position: 'relative' }}
+      sx={{ minWidth: 220, position: 'relative' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onPointerUp={handleTap}
@@ -82,7 +82,7 @@ function FamilyNode({ data }) {
       >
         {/* ── Person header ── */}
         <Box sx={{ background: pc.header, px: 1.75, py: 1.1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.3, whiteSpace: 'nowrap', flex: 1 }}>
             {person.name}
           </Typography>
           {isAdmin && (
@@ -102,7 +102,7 @@ function FamilyNode({ data }) {
         {/* ── Spouse row ── */}
         {person.spouseName ? (
           <Box sx={{ background: sc.soft, borderTop: `1.5px solid ${sc.soft}`, px: 1.75, py: 0.8, minHeight: 36, display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Typography sx={{ color: sc.text, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            <Typography sx={{ color: sc.text, fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', flex: 1 }}>
               {person.spouseName}
             </Typography>
             {isAdmin && (
