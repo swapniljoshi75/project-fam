@@ -436,6 +436,10 @@ export default function App() {
         />
       </div>
 
+      <footer className="footer">
+        <span>Built with ❤️ to preserve our family legacy. — <span style={{ color: 'var(--blue)', fontWeight: 600 }}>Swapnil</span></span>
+      </footer>
+
       {addModal && (
         <AddMemberModal
           mode={addModal.mode}

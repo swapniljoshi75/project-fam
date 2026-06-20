@@ -62,7 +62,8 @@ function FamilyNode({ data }) {
       {isRoot && isAdmin && (
         <Box
           component="button"
-          onClick={() => onAddParent(person)}
+          onClick={(e) => { e.stopPropagation(); onAddParent(person) }}
+          onPointerUp={(e) => e.stopPropagation()}
           sx={{ ...plusBtn, top: -11, opacity: show ? 1 : 0, pointerEvents: show ? 'auto' : 'none', transition: 'opacity 0.15s' }}
           title="Add Parent"
         >
@@ -134,7 +135,8 @@ function FamilyNode({ data }) {
       {/* Bottom + button: all nodes → add child */}
       <Box
         component="button"
-        onClick={() => onAddChild(person)}
+        onClick={(e) => { e.stopPropagation(); onAddChild(person) }}
+        onPointerUp={(e) => e.stopPropagation()}
         sx={{ ...plusBtn, bottom: -11, opacity: show ? 1 : 0, pointerEvents: show ? 'auto' : 'none', transition: 'opacity 0.15s' }}
         title="Add Child"
       >
