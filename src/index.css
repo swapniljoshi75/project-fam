@@ -37,7 +37,7 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; }
 .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); }
 .header-right { display: flex; align-items: center; gap: 8px; }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (pointer: coarse) {
   .hide-mobile { display: none !important; }
 }
 
