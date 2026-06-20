@@ -211,7 +211,8 @@ export default function App() {
     const toSave = [person]
 
     if (isParentOf) {
-      persons = persons.map(p => p.id === isParentOf ? { ...p, parentId: person.id } : p)
+      // Assign siblingOrder: 1 — it's the only child of the new parent at this point
+      persons = persons.map(p => p.id === isParentOf ? { ...p, parentId: person.id, siblingOrder: 1 } : p)
       const updated = persons.find(p => p.id === isParentOf)
       if (updated) toSave.push(updated)
     }
