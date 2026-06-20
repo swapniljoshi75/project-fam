@@ -428,8 +428,10 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; }
 .search-result-name { font-size: 13px; font-weight: 600; color: var(--text); }
 .search-result-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
+.search-mobile-btn { display: none !important; }
 @media (max-width: 480px) {
   .header-search { display: none; }
+  .search-mobile-btn { display: inline-flex !important; }
 }
 
 

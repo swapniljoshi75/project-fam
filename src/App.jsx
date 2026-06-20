@@ -203,6 +203,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMatchId, setSearchMatchId] = useState(null)
   const [searchFocused, setSearchFocused] = useState(false)
+  const [showMobileSearch, setShowMobileSearch] = useState(false)
   const searchContainerRef = useRef(null)
 
   const searchResults = useMemo(() => {
@@ -227,23 +228,26 @@ export default function App() {
     setSearchQuery(result.label)
     setSearchMatchId(result.id)
     setSearchFocused(false)
+    setShowMobileSearch(false)
   }, [])
 
   const clearSearch = useCallback(() => {
     setSearchQuery('')
     setSearchMatchId(null)
     setSearchFocused(false)
+    setShowMobileSearch(false)
   }, [])
 
   useEffect(() => {
     const handleClick = (e) => {
+      if (showMobileSearch) return
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setSearchFocused(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }, [showMobileSearch])
 
   useEffect(() => {
     const unsubscribe = onAuthChange(user => setIsAdmin(!!user))
@@ -486,6 +490,15 @@ export default function App() {
         </div>
 
         <div className="header-right">
+          <button
+            className="btn btn-ghost search-mobile-btn"
+            onClick={() => { setShowMobileSearch(true); setSearchFocused(true) }}
+            title="Search"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
           {isAdmin && userAddedCount > 0 && (
             <button className="btn btn-ghost" onClick={() => setShowReview(true)}>
               Review <span className="badge">{userAddedCount}</span>
@@ -524,6 +537,62 @@ export default function App() {
       <footer className="footer">
         <span>Built with ❤️ to preserve our family legacy. — <span style={{ color: 'var(--blue)', fontWeight: 600 }}>Swapnil</span></span>
       </footer>
+
+      {showMobileSearch && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 300,
+          background: '#fff', borderBottom: '1px solid #E2E8F0',
+          padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+        }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <div className="search-box" style={{ maxWidth: 'none' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search by name…"
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value)
+                  if (searchMatchId) setSearchMatchId(null)
+                }}
+                onFocus={() => setSearchFocused(true)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') clearSearch()
+                  if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0])
+                }}
+              />
+              {(searchQuery || searchMatchId) && (
+                <button className="search-clear" onClick={clearSearch}>×</button>
+              )}
+            </div>
+            {searchFocused && searchResults.length > 0 && (
+              <div className="search-dropdown">
+                {searchResults.map((r, i) => (
+                  <button
+                    key={`${r.id}-${i}`}
+                    className="search-result"
+                    onMouseDown={e => { e.preventDefault(); handleSearchSelect(r) }}
+                  >
+                    <span className="search-result-name">{r.label}</span>
+                    {r.subtitle && <span className="search-result-sub">{r.subtitle}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            className="btn btn-ghost"
+            style={{ flexShrink: 0, fontSize: 13 }}
+            onClick={() => { setShowMobileSearch(false); setSearchFocused(false) }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {addModal && (
         <AddMemberModal
