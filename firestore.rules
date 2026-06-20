@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /persons/{personId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null
+        && request.auth.token.email == 'dreamysj143@gmail.com';
+    }
+
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == 'dreamysj143@gmail.com';
+    }
+
+    match /pending/{pendingId} {
+      allow read: if true;
+      allow create: if validPerson(request.resource.data);
+      allow delete: if request.auth != null
+        && request.auth.token.email == 'dreamysj143@gmail.com';
+      allow update: if false;
+    }
+
+    function validPerson(data) {
+      return data.keys().hasAll(['id', 'name', 'gender', 'status'])
+        && data.name is string && data.name.size() > 0
+        && data.name.size() < 200
+        && data.gender in ['male', 'female']
+        && data.status in ['approved', 'pending'];
+    }
+  }
+}
