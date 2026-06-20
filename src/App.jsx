@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { subscribePersons, savePersons, uid, signIn, signOut, onAuthChange, deletePersonDoc, EMPTY, loadTreeName, saveTreeName } from './utils/store'
 import FamilyFlow from './components/FamilyFlow'
 import AddMemberModal from './components/AddMemberModal'
@@ -199,6 +199,51 @@ export default function App() {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const nameInputRef = useRef(null)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchMatchId, setSearchMatchId] = useState(null)
+  const [searchFocused, setSearchFocused] = useState(false)
+  const searchContainerRef = useRef(null)
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return []
+    const personById = Object.fromEntries(data.persons.map(p => [p.id, p]))
+    const results = []
+    for (const p of data.persons) {
+      if (!p.isNode) continue
+      if (p.name.toLowerCase().startsWith(q)) {
+        const parent = p.parentId ? personById[p.parentId] : null
+        results.push({ id: p.id, label: p.name, subtitle: parent ? `Child of ${parent.name}` : 'Root' })
+      }
+      if (p.spouseName && p.spouseName.toLowerCase().startsWith(q)) {
+        results.push({ id: p.id, label: p.spouseName, subtitle: `Spouse of ${p.name}` })
+      }
+    }
+    return results.slice(0, 8)
+  }, [searchQuery, data.persons])
+
+  const handleSearchSelect = useCallback((result) => {
+    setSearchQuery(result.label)
+    setSearchMatchId(result.id)
+    setSearchFocused(false)
+  }, [])
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('')
+    setSearchMatchId(null)
+    setSearchFocused(false)
+  }, [])
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setSearchFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   useEffect(() => {
     const unsubscribe = onAuthChange(user => setIsAdmin(!!user))
@@ -401,6 +446,45 @@ export default function App() {
             </h1>
           )}
         </div>
+        <div className="header-search" ref={searchContainerRef} style={{ position: 'relative' }}>
+          <div className="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name…"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value)
+                if (searchMatchId) setSearchMatchId(null)
+              }}
+              onFocus={() => setSearchFocused(true)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') clearSearch()
+                if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0])
+              }}
+            />
+            {(searchQuery || searchMatchId) && (
+              <button className="search-clear" onClick={clearSearch} title="Clear search">×</button>
+            )}
+          </div>
+          {searchFocused && searchResults.length > 0 && (
+            <div className="search-dropdown">
+              {searchResults.map((r, i) => (
+                <button
+                  key={`${r.id}-${i}`}
+                  className="search-result"
+                  onMouseDown={e => { e.preventDefault(); handleSearchSelect(r) }}
+                >
+                  <span className="search-result-name">{r.label}</span>
+                  {r.subtitle && <span className="search-result-sub">{r.subtitle}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="header-right">
           {isAdmin && userAddedCount > 0 && (
             <button className="btn btn-ghost" onClick={() => setShowReview(true)}>
@@ -433,6 +517,7 @@ export default function App() {
           onDeleteSpouse={handleDeleteSpouse}
           activeTapId={activeTapId}
           setActiveTapId={setActiveTapId}
+          searchMatchId={searchMatchId}
         />
       </div>
 

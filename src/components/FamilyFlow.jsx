@@ -7,7 +7,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import FamilyNode from './FamilyNode'
-import { buildFlowGraph } from '../utils/flowLayout'
+import { buildFlowGraph, NODE_W, NODE_H } from '../utils/flowLayout'
 
 const nodeTypes = { familyNode: FamilyNode }
 
@@ -24,6 +24,7 @@ export default function FamilyFlow({
   onDeleteSpouse,
   activeTapId,
   setActiveTapId,
+  searchMatchId,
 }) {
 
   const { nodes: baseNodes, edges } = useMemo(
@@ -34,9 +35,9 @@ export default function FamilyFlow({
   const nodes = useMemo(
     () => baseNodes.map(n => ({
       ...n,
-      data: { ...n.data, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId },
+      data: { ...n.data, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, setActiveTapId, highlighted: n.id === searchMatchId },
     })),
-    [baseNodes, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId],
+    [baseNodes, isAdmin, onAddChild, onAddParent, onAddSpouse, onEdit, onDelete, onEditSpouse, onDeleteSpouse, activeTapId, searchMatchId],
   )
 
   const rfInstance = useRef(null)
@@ -48,6 +49,17 @@ export default function FamilyFlow({
     const t = setTimeout(() => { trackingEnabled.current = true }, 500)
     return () => clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    if (!searchMatchId || !rfInstance.current) return
+    const node = nodes.find(n => n.id === searchMatchId)
+    if (!node) return
+    rfInstance.current.setCenter(
+      node.position.x + NODE_W / 2,
+      node.position.y + NODE_H / 2,
+      { zoom: 1.2, duration: 600 },
+    )
+  }, [searchMatchId, nodes])
 
   useEffect(() => {
     const handleOrientation = () => {

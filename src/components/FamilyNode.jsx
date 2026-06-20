@@ -51,7 +51,7 @@ function FamilyNode({ data }) {
 
   return (
     <Box
-      sx={{ minWidth: 220, position: 'relative' }}
+sx={{ minWidth: 220, position: 'relative' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onPointerUp={handleTap}
