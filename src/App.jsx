@@ -394,7 +394,7 @@ export default function App() {
     setAddModal({ mode: 'child', refNode: person, usedOrders })
   }, [data])
   const onAddParent = useCallback((person) => setAddModal({ mode: 'parent', refNode: person }), [])
-  const onAddSpouse   = useCallback((person) => setAddModal({ mode: 'spouse', refNode: person }), [])
+  const onAddSpouse   = useCallback((person) => setAddModal({ mode: 'spouse', refNode: person, initialGender: person.gender === 'male' ? 'female' : 'male' }), [])
   const onEditSpouse  = useCallback((person) => setAddModal({ mode: 'spouse', refNode: person, initialName: person.spouseName ?? '', initialGender: person.spouseGender ?? null }), [])
   const onAddRoot    = useCallback(() => setAddModal({ mode: 'root' }), [])
 
