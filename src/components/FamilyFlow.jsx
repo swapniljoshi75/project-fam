@@ -50,16 +50,19 @@ export default function FamilyFlow({
     return () => clearTimeout(t)
   }, [])
 
+  const nodesRef = useRef(nodes)
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
+
   useEffect(() => {
     if (!searchMatchId || !rfInstance.current) return
-    const node = nodes.find(n => n.id === searchMatchId)
+    const node = nodesRef.current.find(n => n.id === searchMatchId)
     if (!node) return
     rfInstance.current.setCenter(
       node.position.x + NODE_W / 2,
       node.position.y + NODE_H / 2,
       { zoom: 1.2, duration: 600 },
     )
-  }, [searchMatchId, nodes])
+  }, [searchMatchId])
 
   useEffect(() => {
     const handleOrientation = () => {

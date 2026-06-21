@@ -469,7 +469,7 @@ export default function App() {
                 if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0])
               }}
             />
-            {(searchQuery || searchMatchId) && (
+            {searchQuery && (
               <button className="search-clear" onClick={clearSearch} title="Clear search">×</button>
             )}
           </div>
@@ -540,7 +540,7 @@ export default function App() {
 
       {showMobileSearch && (
         <div className="mobile-search-overlay">
-          <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
             <div className="search-box">
               <input
                 autoFocus
