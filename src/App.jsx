@@ -225,7 +225,7 @@ export default function App() {
   }, [searchQuery, data.persons])
 
   const handleSearchSelect = useCallback((result) => {
-    setSearchQuery(result.label)
+    setSearchQuery('')
     setSearchMatchId(result.id)
     setSearchFocused(false)
     setShowMobileSearch(false)
@@ -491,11 +491,11 @@ export default function App() {
 
         <div className="header-right">
           <button
-            className="btn btn-ghost search-mobile-btn"
+            className="search-mobile-btn"
             onClick={() => { setShowMobileSearch(true); setSearchFocused(true) }}
             title="Search"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
@@ -539,17 +539,9 @@ export default function App() {
       </footer>
 
       {showMobileSearch && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 300,
-          background: '#fff', borderBottom: '1px solid #E2E8F0',
-          padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-        }}>
+        <div className="mobile-search-overlay">
           <div style={{ flex: 1, position: 'relative' }}>
-            <div className="search-box" style={{ maxWidth: 'none' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
+            <div className="search-box">
               <input
                 autoFocus
                 type="text"
@@ -565,9 +557,6 @@ export default function App() {
                   if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0])
                 }}
               />
-              {(searchQuery || searchMatchId) && (
-                <button className="search-clear" onClick={clearSearch}>×</button>
-              )}
             </div>
             {searchFocused && searchResults.length > 0 && (
               <div className="search-dropdown">
@@ -585,11 +574,10 @@ export default function App() {
             )}
           </div>
           <button
-            className="btn btn-ghost"
-            style={{ flexShrink: 0, fontSize: 13 }}
-            onClick={() => { setShowMobileSearch(false); setSearchFocused(false) }}
+            className="mobile-search-cancel"
+            onClick={clearSearch}
           >
-            Cancel
+            ×
           </button>
         </div>
       )}
