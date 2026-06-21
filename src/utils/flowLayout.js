@@ -26,6 +26,32 @@ export function buildFlowGraph(persons) {
 
   dagre.layout(g)
 
+  // ── Center each parent exactly above the midpoint of its children ─────────
+  // Dagre's global optimisation can leave parents offset; this pass fixes it.
+  // We work bottom-up (deepest parents first) so that when we re-center a
+  // grandparent it uses the already-corrected positions of its children.
+
+  const nodeX = {}
+  nodeList.forEach(p => { const pos = g.node(p.id); if (pos) nodeX[p.id] = pos.x })
+
+  const nodeById = Object.fromEntries(nodeList.map(p => [p.id, p]))
+  const depth = {}
+  const getDepth = (id) => {
+    if (depth[id] != null) return depth[id]
+    const node = nodeById[id]
+    if (!node?.parentId || !idSet.has(node.parentId)) return (depth[id] = 0)
+    return (depth[id] = getDepth(node.parentId) + 1)
+  }
+  nodeList.forEach(p => getDepth(p.id))
+
+  Object.entries(byParent)
+    .sort(([a], [b]) => (depth[b] ?? 0) - (depth[a] ?? 0))
+    .forEach(([parentId, siblings]) => {
+      const xs = siblings.map(p => nodeX[p.id]).filter(x => x != null)
+      if (xs.length) nodeX[parentId] = (Math.min(...xs) + Math.max(...xs)) / 2
+    })
+  // ─────────────────────────────────────────────────────────────────────────
+
   const childParentIds = new Set(children.map(p => p.parentId))
   const childCountMap = {}
   children.forEach(p => { childCountMap[p.parentId] = (childCountMap[p.parentId] ?? 0) + 1 })
@@ -33,7 +59,8 @@ export function buildFlowGraph(persons) {
   const nodes = nodeList.map(p => {
     const pos = g.node(p.id)
     if (!pos) return null
-    const { x, y } = pos
+    const x = nodeX[p.id] ?? pos.x
+    const { y } = pos
     return {
       id: p.id,
       type: 'familyNode',
@@ -44,12 +71,12 @@ export function buildFlowGraph(persons) {
   }).filter(Boolean)
 
   const edges = children.map(p => ({
-      id: `e-${p.parentId}-${p.id}`,
-      source: p.parentId,
-      target: p.id,
-      type: 'smoothstep',
-      style: { stroke: '#CBD5E1', strokeWidth: 2 },
-    }))
+    id: `e-${p.parentId}-${p.id}`,
+    source: p.parentId,
+    target: p.id,
+    type: 'smoothstep',
+    style: { stroke: '#CBD5E1', strokeWidth: 2 },
+  }))
 
   return { nodes, edges }
 }
