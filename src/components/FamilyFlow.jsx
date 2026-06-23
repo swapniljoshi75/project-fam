@@ -7,9 +7,11 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import FamilyNode from './FamilyNode'
+import { FamilyBranchEdge } from './FamilyBranchEdge'
 import { buildFlowGraph, NODE_W, NODE_H } from '../utils/flowLayout'
 
 const nodeTypes = { familyNode: FamilyNode }
+const edgeTypes = { familyBranch: FamilyBranchEdge }
 
 export default function FamilyFlow({
   persons,
@@ -102,6 +104,7 @@ export default function FamilyFlow({
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       fitView
       fitViewOptions={{ padding: 0.22 }}
       minZoom={0.06}
@@ -113,10 +116,6 @@ export default function FamilyFlow({
       zoomOnScroll={false}
       zoomOnPinch
       proOptions={{ hideAttribution: true }}
-      defaultEdgeOptions={{
-        type: 'smoothstep',
-        style: { stroke:'#CBD5E1', strokeWidth:2 },
-      }}
       onInit={(instance) => { rfInstance.current = instance }}
       onMoveStart={() => {
         if (trackingEnabled.current && !suppressNextMove.current) {

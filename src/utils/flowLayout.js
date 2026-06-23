@@ -1,82 +1,95 @@
-import dagre from '@dagrejs/dagre'
-
 export const NODE_W = 260
 export const NODE_H = 116
+const H_GAP = 56   // horizontal gap between sibling subtrees
+const V_GAP = 90   // vertical gap between generations
 
 export function buildFlowGraph(persons) {
   const nodeList = persons.filter(p => p.isNode)
+  if (nodeList.length === 0) return { nodes: [], edges: [] }
+
   const idSet = new Set(nodeList.map(p => p.id))
 
-  const g = new dagre.graphlib.Graph()
-  g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({ rankdir: 'TB', ranksep: 90, nodesep: 40, marginx: 40, marginy: 40 })
+  // Build children map, sort elder-first (highest siblingOrder → leftmost)
+  const childrenMap = {}
+  nodeList.forEach(p => {
+    if (p.parentId && idSet.has(p.parentId)) {
+      (childrenMap[p.parentId] ??= []).push(p)
+    }
+  })
+  // Ascending: lower siblingOrder (1=first-born=elder) goes left, higher goes right
+  Object.values(childrenMap).forEach(sibs =>
+    sibs.sort((a, b) => (a.siblingOrder ?? a.addedAt ?? 0) - (b.siblingOrder ?? b.addedAt ?? 0))
+  )
 
-  nodeList.forEach(p => g.setNode(p.id, { width: NODE_W, height: NODE_H }))
+  // Nodes whose parent is absent from the set are forest roots
+  const roots = nodeList.filter(p => !p.parentId || !idSet.has(p.parentId))
 
-  // Sort siblings by birth order before adding dagre edges so the layout
-  // places them left-to-right in elder→younger order.
-  const children = nodeList.filter(p => p.parentId && idSet.has(p.parentId))
-  const byParent = {}
-  children.forEach(p => { (byParent[p.parentId] ??= []).push(p) })
-  Object.values(byParent).forEach(siblings => {
-    siblings
-      .sort((a, b) => (b.siblingOrder ?? b.addedAt ?? 0) - (a.siblingOrder ?? a.addedAt ?? 0))
-      .forEach(p => g.setEdge(p.parentId, p.id))
+  // Reingold-Tilford: compute minimum subtree width bottom-up
+  const subtreeW = {}
+  function getW(id) {
+    if (subtreeW[id] != null) return subtreeW[id]
+    const ch = childrenMap[id] ?? []
+    if (!ch.length) return (subtreeW[id] = NODE_W)
+    const childTotal = ch.reduce((s, c) => s + getW(c.id), 0)
+    return (subtreeW[id] = Math.max(NODE_W, childTotal + (ch.length - 1) * H_GAP))
+  }
+  roots.forEach(r => getW(r.id))
+
+  // Top-down position assignment — each subtree occupies its own non-overlapping band
+  const nodeCX = {}, nodeCY = {}
+  function place(id, left, depth) {
+    nodeCX[id] = left + getW(id) / 2
+    nodeCY[id] = depth * (NODE_H + V_GAP) + NODE_H / 2
+    const ch = childrenMap[id] ?? []
+    let cursor = left
+    ch.forEach(c => {
+      place(c.id, cursor, depth + 1)
+      cursor += getW(c.id) + H_GAP
+    })
+  }
+  let xOffset = 0
+  roots.forEach(r => {
+    place(r.id, xOffset, 0)
+    xOffset += getW(r.id) + H_GAP * 2
   })
 
-  dagre.layout(g)
-
-  // ── Center each parent exactly above the midpoint of its children ─────────
-  // Dagre's global optimisation can leave parents offset; this pass fixes it.
-  // We work bottom-up (deepest parents first) so that when we re-center a
-  // grandparent it uses the already-corrected positions of its children.
-
-  const nodeX = {}
-  nodeList.forEach(p => { const pos = g.node(p.id); if (pos) nodeX[p.id] = pos.x })
-
-  const nodeById = Object.fromEntries(nodeList.map(p => [p.id, p]))
-  const depth = {}
-  const getDepth = (id) => {
-    if (depth[id] != null) return depth[id]
-    const node = nodeById[id]
-    if (!node?.parentId || !idSet.has(node.parentId)) return (depth[id] = 0)
-    return (depth[id] = getDepth(node.parentId) + 1)
-  }
-  nodeList.forEach(p => getDepth(p.id))
-
-  Object.entries(byParent)
-    .sort(([a], [b]) => (depth[b] ?? 0) - (depth[a] ?? 0))
-    .forEach(([parentId, siblings]) => {
-      const xs = siblings.map(p => nodeX[p.id]).filter(x => x != null)
-      if (xs.length) nodeX[parentId] = (Math.min(...xs) + Math.max(...xs)) / 2
-    })
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const childParentIds = new Set(children.map(p => p.parentId))
+  const hasChildSet = new Set(Object.keys(childrenMap))
   const childCountMap = {}
-  children.forEach(p => { childCountMap[p.parentId] = (childCountMap[p.parentId] ?? 0) + 1 })
+  Object.entries(childrenMap).forEach(([pid, ch]) => { childCountMap[pid] = ch.length })
 
-  const nodes = nodeList.map(p => {
-    const pos = g.node(p.id)
-    if (!pos) return null
-    const x = nodeX[p.id] ?? pos.x
-    const { y } = pos
-    return {
+  const nodes = nodeList
+    .filter(p => nodeCX[p.id] != null)
+    .map(p => ({
       id: p.id,
       type: 'familyNode',
-      position: { x: x - NODE_W / 2, y: y - NODE_H / 2 },
-      data: { person: p, hasChildren: childParentIds.has(p.id), childCount: childCountMap[p.id] ?? 0 },
+      position: { x: nodeCX[p.id] - NODE_W / 2, y: nodeCY[p.id] - NODE_H / 2 },
+      data: { person: p, hasChildren: hasChildSet.has(p.id), childCount: childCountMap[p.id] ?? 0 },
       draggable: false,
-    }
-  }).filter(Boolean)
+    }))
 
-  const edges = children.map(p => ({
-    id: `e-${p.parentId}-${p.id}`,
-    source: p.parentId,
-    target: p.id,
-    type: 'smoothstep',
-    style: { stroke: '#CBD5E1', strokeWidth: 2 },
-  }))
+  // Build edges: single child → straight line; multiple → shared bracket rail
+  const edges = []
+  Object.entries(childrenMap).forEach(([parentId, siblings]) => {
+    const multi = siblings.length > 1
+    siblings.forEach((child, i) => {
+      edges.push({
+        id: `e-${parentId}-${child.id}`,
+        source: parentId,
+        target: child.id,
+        type: multi ? 'familyBranch' : 'straight',
+        style: { stroke: '#CBD5E1', strokeWidth: 2 },
+        ...(multi && {
+          data: {
+            drawRail: i === 0,
+            // Horizontal span between leftmost and rightmost child centers.
+            // Using a relative offset (not absolute X) so it stays correct even
+            // if the node's actual rendered width differs from NODE_W.
+            railSpanRight: nodeCX[siblings[siblings.length - 1].id] - nodeCX[siblings[0].id],
+          },
+        }),
+      })
+    })
+  })
 
   return { nodes, edges }
 }
